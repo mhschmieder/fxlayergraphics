@@ -511,7 +511,10 @@ public final class LayerUtilities {
     }
 
     public static ObservableList< LayerProperties > makeLayerCollection() {
-        // Use an extractor to make individual properties available.
+        // Use the extractor pattern to ensure that edits to the specified
+        // properties trigger list change events, as otherwise only adding to
+        // and from the list does so, as it doesn't look at the granularity of
+        // the observable properties below.
         final ObservableList< LayerProperties > layerCollection = FXCollections
                 .observableArrayList( layerProperties -> new Observable[] {
                                                                             layerProperties
