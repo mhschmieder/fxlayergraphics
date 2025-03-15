@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2020, 2023 Mark Schmieder
+ * Copyright (c) 2020, 2025 Mark Schmieder
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@ package com.mhschmieder.fxlayergraphics;
 
 import java.text.NumberFormat;
 
+import com.mhschmieder.commonstoolkit.lang.LabeledObjectManager;
 import com.mhschmieder.commonstoolkit.text.TextUtilities;
 import com.mhschmieder.fxlayergraphics.model.LayerProperties;
 
@@ -79,19 +80,19 @@ public final class LayerUtilities {
             // none of them are unadorned (even the first).
             layerCandidateName = LAYER_NAME_DEFAULT;
             final int uniquefierNumber = 1;
-            layerCandidateName = getUniqueLayerName( layerCandidateName,
-                                                     layerCollection,
-                                                     uniquefierNumberFormat,
+            layerCandidateName = getUniqueLayerName( layerCollection,
+                                                     layerCandidateName,
+                                                     excludeLayerIndex,
                                                      uniquefierNumber,
-                                                     excludeLayerIndex );
+                                                     uniquefierNumberFormat );
         }
         else {
             // Recursively search for (and enforce) name-uniqueness of the
             // Layer candidate, leaving unadorned if possible.
-            layerCandidateName = getUniqueLayerName( layerCandidateName,
-                                                     layerCollection,
-                                                     uniquefierNumberFormat,
-                                                     excludeLayerIndex );
+            layerCandidateName = getUniqueLayerName( layerCollection,
+                                                     layerCandidateName,
+                                                     excludeLayerIndex,
+                                                     uniquefierNumberFormat );
         }
 
         // Reset the Layer Name candidate, in case it changed.
@@ -320,7 +321,7 @@ public final class LayerUtilities {
             return null;
         }
 
-        final String newLayerName = getNextAvailableLayerName( layerCollection );
+        final String newLayerName = getNewLayerNameDefault( layerCollection );
 
         final Color color = referenceLayer.getLayerColor();
         final boolean display = referenceLayer.isLayerVisible();
@@ -357,84 +358,64 @@ public final class LayerUtilities {
     }
 
     // Get the next available Layer Name for a new Layer in the collection.
-    public static String getNextAvailableLayerName( final ObservableList< LayerProperties > layerCollection ) {
-        return getNextAvailableLayerName( LAYER_NAME_DEFAULT, layerCollection );
+    public static String getNewLayerNameDefault( final ObservableList< LayerProperties > layerCollection ) {
+        return getNewLayerNameDefault( LAYER_NAME_DEFAULT, layerCollection );
     }
 
     // Get the next available Layer Name for a new Layer in the collection.
-    public static String getNextAvailableLayerName( final String layerNameDefault,
-                                                    final ObservableList< LayerProperties > layerCollection ) {
+    public static String getNewLayerNameDefault( final String layerNameDefault,
+                                                 final ObservableList< LayerProperties > layerCollection ) {
         // Bump beyond the current count -- as the new Layer hasn't been added
         // to the collection yet -- but account for numbering starting at 0.
-        final int newLayerNumber = layerCollection.size();
-        return getNextAvailableLayerName( layerNameDefault, layerCollection, newLayerNumber );
+        return LabeledObjectManager.getNewLabelDefault( layerCollection, 
+                                                        layerNameDefault, 
+                                                        " ",
+                                                        true );
     }
 
-    // Get the next available Layer Name from the current number.
-    public static String getNextAvailableLayerName( final String layerNameDefault,
-                                                    final ObservableList< LayerProperties > layerCollection,
-                                                    final int layerNumber ) {
-        // Recursively search for (and enforce) name-uniqueness of the next
-        // Layer Name using the current number as the basis.
-        String nextAvailableLayerName = layerNameDefault + " " //$NON-NLS-1$
-                + Integer.toString( layerNumber );
-        for ( final LayerProperties layer : layerCollection ) {
-            final String layerName = layer.getLayerName();
-            if ( nextAvailableLayerName.equals( layerName ) ) {
-                // If the proposed name is not unique in the collection, bump
-                // the Layer Number recursively until unique.
-                nextAvailableLayerName = getNextAvailableLayerName( layerNameDefault,
-                                                                    layerCollection,
-                                                                    layerNumber + 1 );
-                break;
-            }
-        }
-
-        return nextAvailableLayerName;
-    }
-
-    public static String getUniqueLayerName( final String layerNameCandidate,
-                                             final ObservableList< LayerProperties > layerCollection,
-                                             final NumberFormat uniquefierNumberFormat,
-                                             final int excludeLayerIndex ) {
+    public static String getUniqueLayerName( final ObservableList< LayerProperties > layerCollection,
+                                             final String layerNameCandidate,
+                                             final int excludeLayerIndex,
+                                             final NumberFormat uniquefierNumberFormat ) {
         // Only adorn the Layer Name candidate if it is non-unique.
         final int uniquefierNumber = 0;
-        return getUniqueLayerName( layerNameCandidate,
-                                   layerCollection,
-                                   uniquefierNumberFormat,
+        return getUniqueLayerName( layerCollection,
+                                   layerNameCandidate,
+                                   excludeLayerIndex,
                                    uniquefierNumber,
-                                   excludeLayerIndex );
+                                   uniquefierNumberFormat );
     }
 
-    public static String getUniqueLayerName( final String layerNameCandidate,
-                                             final ObservableList< LayerProperties > layerCollection,
-                                             final NumberFormat uniquefierNumberFormat,
+    public static String getUniqueLayerName( final ObservableList< LayerProperties > layerCollection,
+                                             final String layerNameCandidate,
+                                             final int excludeLayerIndex,
                                              final int uniquefierNumber,
-                                             final int excludeLayerIndex ) {
+                                             final NumberFormat uniquefierNumberFormat ) {
         // Recursively search for (and enforce) name-uniqueness of the supplied
         // Layer Name candidate and uniquefier number.
         // NOTE: We must loop from the start of the collection, in order to
-        // allow for reuse of deleted names and to minimize or eliminate the
-        // chance of holes in the numbering scheme.
+        //  allow for reuse of deleted names and to minimize or eliminate the
+        //  chance of holes in the numbering scheme.
         final String uniquefierAppendix = TextUtilities
                 .getUniquefierAppendix( uniquefierNumber, uniquefierNumberFormat );
-        String layerName = layerNameCandidate + uniquefierAppendix;
+        String uniqueLayerName = layerNameCandidate + uniquefierAppendix;
         for ( int layerIndex = 0, numberOfLayers = layerCollection
                 .size(); layerIndex < numberOfLayers; layerIndex++ ) {
             if ( ( layerIndex != excludeLayerIndex )
-                    && layerName.equals( layerCollection.get( layerIndex ).getLayerName() ) ) {
+                    && uniqueLayerName.equals( layerCollection.get( layerIndex )
+                                               .getLayerName() ) ) {
                 // Recursively guarantee the appendix-adjusted name is also
                 // unique, using a hopefully-unique number as the appendix.
-                layerName = getUniqueLayerName( layerNameCandidate,
-                                                layerCollection,
-                                                uniquefierNumberFormat,
-                                                uniquefierNumber + 1,
-                                                excludeLayerIndex );
+                uniqueLayerName = getUniqueLayerName( layerCollection,
+                                                      layerNameCandidate,
+                                                      excludeLayerIndex,
+                                                      uniquefierNumber + 1,
+                                                      uniquefierNumberFormat );
                 break;
             }
         }
 
-        return layerName;
+        return uniqueLayerName;
     }
 
     public static boolean hasActiveLayer( final ObservableList< LayerProperties > layerCollection ) {
@@ -583,8 +564,6 @@ public final class LayerUtilities {
         return setActiveLayer( layerCollection, DEFAULT_LAYER_INDEX );
     }
 
-    // NOTE: This method and its calling hierarchy might be safer if they
-    // index into the cached collection vs. using the table view itself.
     public static void uniquefyLayerName( final String layerNameCandidate,
                                           final NumberFormat uniquefierNumberFormat,
                                           final ObservableList< LayerProperties > layerCollection,
@@ -598,10 +577,10 @@ public final class LayerUtilities {
         final String oldLayerName = layerProperties.getLayerName();
         final String newLayerName = ( DEFAULT_LAYER_INDEX == layerIndex )
             ? DEFAULT_LAYER_NAME
-            : getUniqueLayerName( layerNameCandidate,
-                                  layerCollection,
-                                  uniquefierNumberFormat,
-                                  layerIndex );
+            : getUniqueLayerName( layerCollection,
+                                  layerNameCandidate,
+                                  layerIndex,
+                                  uniquefierNumberFormat );
 
         // If user edits were dismissed -- resulting in no consequent change
         // from the pre-edit state -- pre-cache the unadjusted, candidate value,

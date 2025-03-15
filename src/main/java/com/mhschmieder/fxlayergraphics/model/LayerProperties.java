@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2020, 2023 Mark Schmieder
+ * Copyright (c) 2020, 2025 Mark Schmieder
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
  */
 package com.mhschmieder.fxlayergraphics.model;
 
+import com.mhschmieder.commonstoolkit.lang.LabeledObject;
 import com.mhschmieder.fxlayergraphics.LayerUtilities;
 
 import javafx.beans.property.BooleanProperty;
@@ -40,7 +41,8 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.paint.Color;
 
-public final class LayerProperties implements Comparable< LayerProperties > {
+public final class LayerProperties implements Comparable< LayerProperties >,
+    LabeledObject {
 
     private final StringProperty          layerName;
     private final ObjectProperty< Color > layerColor;
@@ -138,4 +140,13 @@ public final class LayerProperties implements Comparable< LayerProperties > {
         layerVisible.set( pLayerVisible );
     }
 
+    @Override
+    public String getLabel() {
+        return getLayerName();
+    }
+
+    @Override
+    public void setLabel( String label ) {
+        setLayerName( label );
+    }
 }
