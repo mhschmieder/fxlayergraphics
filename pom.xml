@@ -10,7 +10,7 @@
 	<version>0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>FxLayerGraphics</name>
+	<name>fxlayergraphics</name>
 	<url>https://github.com/mhschmieder/fxlayergraphics</url>
 	<description>JavaFX based graphics model support for core layer management tasks and concepts.</description>
 
