@@ -30,15 +30,14 @@
  */
 package com.mhschmieder.fxlayergraphics;
 
-import java.text.NumberFormat;
-
 import com.mhschmieder.commonstoolkit.lang.LabeledObjectManager;
 import com.mhschmieder.fxlayergraphics.model.LayerProperties;
-
 import javafx.beans.Observable;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.paint.Color;
+
+import java.text.NumberFormat;
 
 public final class LayerUtilities {
 

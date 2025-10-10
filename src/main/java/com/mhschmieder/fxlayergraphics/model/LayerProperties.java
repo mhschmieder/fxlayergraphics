@@ -32,7 +32,6 @@ package com.mhschmieder.fxlayergraphics.model;
 
 import com.mhschmieder.commonstoolkit.lang.LabeledObject;
 import com.mhschmieder.fxlayergraphics.LayerUtilities;
-
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
