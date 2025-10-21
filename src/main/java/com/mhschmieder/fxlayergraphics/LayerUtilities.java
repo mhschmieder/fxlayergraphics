@@ -30,8 +30,8 @@
  */
 package com.mhschmieder.fxlayergraphics;
 
-import com.mhschmieder.commonstoolkit.lang.LabeledObjectManager;
 import com.mhschmieder.fxlayergraphics.model.LayerProperties;
+import com.mhschmieder.jcommons.lang.LabeledObjectManager;
 import javafx.beans.Observable;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
