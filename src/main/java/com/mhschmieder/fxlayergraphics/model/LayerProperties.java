@@ -1,4 +1,4 @@
-/**
+/*
  * MIT License
  *
  * Copyright (c) 2020, 2025 Mark Schmieder
@@ -40,6 +40,8 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.paint.Color;
 
+// TODO: Move this to the fxlayercontrols library as a model class that is
+//  exclusively coupled to the GUI, and make a new non-observable class here?
 public final class LayerProperties implements Comparable< LayerProperties >,
     LabeledObject {
 
