@@ -28,16 +28,18 @@
  *
  * Project: https://github.com/mhschmieder/fxlayergraphics
  */
-package com.mhschmieder.fxlayergraphics.model;
+package com.mhschmieder.fxlayergraphics;
 
-import javafx.beans.property.StringProperty;
+import com.mhschmieder.fxlayergraphics.model.LayerProperties;
 
-public interface LayerNameAssignable {
+public interface LayerPropertiesAssignable {
 
-    StringProperty layerNameProperty();
+    LayerProperties getLayerProperties();
 
-    String getLayerName();
+    void setLayerProperties( final LayerProperties layerProperties );
 
-    void setLayerName( final String pLayerName );
-
+    default String getLayerName() {
+        final LayerProperties layerProperties = getLayerProperties();
+        return ( layerProperties == null ) ? "" : layerProperties.getLayerName();
+    }
 }

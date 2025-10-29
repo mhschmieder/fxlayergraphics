@@ -1,7 +1,7 @@
-/**
+/*
  * MIT License
  *
- * Copyright (c) 2020, 2023 Mark Schmieder
+ * Copyright (c) 2020, 2025, Mark Schmieder. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,18 +30,14 @@
  */
 package com.mhschmieder.fxlayergraphics;
 
-import com.mhschmieder.fxlayergraphics.model.LayerProperties;
-
 public interface LayerAssignable {
 
-    LayerProperties getLayer();
+    Layer getLayer();
 
-    @SuppressWarnings("nls")
+    void setLayer( final Layer layer );
+
     default String getLayerName() {
-        final LayerProperties layerProperties = getLayer();
-        return ( layerProperties == null ) ? "" : layerProperties.getLayerName();
+        final Layer layer = getLayer();
+        return ( layer == null ) ? "" : layer.getLayerName();
     }
-
-    void setLayer( final LayerProperties layer );
-
 }

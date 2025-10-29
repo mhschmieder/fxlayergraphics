@@ -1,7 +1,7 @@
-/**
+/*
  * MIT License
  *
- * Copyright (c) 2020, 2025 Mark Schmieder
+ * Copyright (c) 2020, 2025, Mark Schmieder. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,18 +30,19 @@
  */
 package com.mhschmieder.fxlayergraphics;
 
-import com.mhschmieder.fxlayergraphics.model.LayerProperties;
 import com.mhschmieder.jcommons.lang.LabeledObjectManager;
-import javafx.beans.Observable;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.scene.paint.Color;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
 
-public final class LayerUtilities {
+/**
+ * Utility class to manage non-observable layers.
+ */
+public final class LayerManager {
 
-    // Declare default values for all of the Layer Properties.
+    // Declare default values for all the Layer Properties.
     public static final String  LAYER_NAME_DEFAULT    = "Layer";    //$NON-NLS-1$
     public static final boolean LAYER_STATUS_DEFAULT  = false;
     public static final boolean LAYER_DISPLAY_DEFAULT = true;
@@ -60,8 +61,8 @@ public final class LayerUtilities {
     // Declare the enforced default index of 0 for the Default Layer.
     public static final int     DEFAULT_LAYER_INDEX   = 0;
 
-    public static void addLayer( final ObservableList< LayerProperties > layerCollection,
-                                 final LayerProperties layerCandidate,
+    public static void addLayer( final List< Layer > layerCollection,
+                                 final Layer layerCandidate,
                                  final NumberFormat uniquefierNumberFormat ) {
         // Prevent exceptions by filtering for null objects.
         if ( layerCandidate == null ) {
@@ -104,22 +105,22 @@ public final class LayerUtilities {
     }
 
     // Add a Layer clone to the collection (guaranteed to be unique).
-    public static LayerProperties addLayerClone( final ObservableList< LayerProperties > layerCollection,
-                                                 final int insertLayerIndex ) {
+    public static Layer addLayerClone( final List< Layer > layerCollection,
+                                       final int insertLayerIndex ) {
         if ( layerCollection.isEmpty() ) {
             return null;
         }
 
         final int referenceLayerIndex = insertLayerIndex - 1;
-        final LayerProperties newLayer = getLayerClone( referenceLayerIndex, layerCollection );
+        final Layer newLayer = getLayerClone( referenceLayerIndex, layerCollection );
         layerCollection.add( insertLayerIndex, newLayer );
 
         return newLayer;
     }
 
     // Add a Layer candidate to the collection if not already present.
-    public static void addLayerIfUnique( final ObservableList< LayerProperties > layerCollection,
-                                         final LayerProperties layerCandidate ) {
+    public static void addLayerIfUnique( final List< Layer > layerCollection,
+                                         final Layer layerCandidate ) {
         if ( !hasLayer( layerCollection, layerCandidate ) ) {
             // Add the new Layer to the end of the Layer Collection.
             layerCollection.add( layerCandidate );
@@ -128,9 +129,10 @@ public final class LayerUtilities {
 
     // Enforce the Active Layer Policy, which is that only one Layer can be
     // Active at a time. Default to the Default Layer if none are Active.
-    private static LayerProperties enforceActiveLayerPolicy( final ObservableList< LayerProperties > layerCollection,
-                                                             final int currentLayerIndex,
-                                                             final boolean exemptDefaultLayer ) {
+    private static Layer enforceActiveLayerPolicy(
+            final List< Layer > layerCollection,
+            final int currentLayerIndex,
+            final boolean exemptDefaultLayer ) {
         // If the Layer we're intending to make Active is Hidden, make Inactive.
         // NOTE: We conditionally exempt the Default Layer (if invoked from a
         // high-level dirty flag callback), to avoid all Layers being Inactive.
@@ -140,14 +142,13 @@ public final class LayerUtilities {
             // pre-toggle state -- re-clear the Selected Layer and exit, as
             // otherwise we miss some view-syncing due to no "changed" event.
             if ( isLayerHidden( layerCollection, currentLayerIndex ) ) {
-                final LayerProperties currentLayer = LayerUtilities.getLayer( layerCollection,
-                                                                              currentLayerIndex );
+                final Layer currentLayer = getLayer(
+                        layerCollection, currentLayerIndex );
                 if ( currentLayer.isLayerActive() ) {
                     currentLayer.setLayerActive( false );
                 }
 
-                final LayerProperties activeLayer =
-                                                  LayerUtilities.getActiveLayer( layerCollection );
+                final Layer activeLayer = getActiveLayer( layerCollection );
                 return activeLayer;
             }
         }
@@ -155,11 +156,11 @@ public final class LayerUtilities {
         // In order to avoid consuming a desired positive setting of a new
         // Active Layer when a higher row is inactivated, we must first set the
         // new Active Layer and then inactivate the rest.
-        final LayerProperties activeLayer = setActiveLayer( layerCollection, currentLayerIndex );
+        final Layer activeLayer = setActiveLayer( layerCollection, currentLayerIndex );
 
         for ( int layerIndex = 0, numberOfLayers = layerCollection
                 .size(); layerIndex < numberOfLayers; layerIndex++ ) {
-            final LayerProperties layer = layerCollection.get( layerIndex );
+            final Layer layer = layerCollection.get( layerIndex );
             if ( layerIndex != currentLayerIndex ) {
                 if ( layer.isLayerActive() ) {
                     layer.setLayerActive( false );
@@ -172,25 +173,28 @@ public final class LayerUtilities {
 
     // Enforce the Active Layer Policy, which is that only one Layer can be
     // Active at a time. Default to the Default Layer if none are Active.
-    public static LayerProperties enforceActiveLayerPolicy( final ObservableList< LayerProperties > layerCollection,
-                                                            final String currentLayerName,
-                                                            final boolean exemptDefaultLayer ) {
-        final int activeLayerIndex = getLayerIndex( layerCollection, currentLayerName );
-        final LayerProperties activeLayer = enforceActiveLayerPolicy( layerCollection,
-                                                                      activeLayerIndex,
-                                                                      exemptDefaultLayer );
+    public static Layer enforceActiveLayerPolicy(
+            final List< Layer > layerCollection,
+            final String currentLayerName,
+            final boolean exemptDefaultLayer ) {
+        final int activeLayerIndex
+                = getLayerIndex( layerCollection, currentLayerName );
 
-        return activeLayer;
+        return enforceActiveLayerPolicy(
+                layerCollection,
+                activeLayerIndex,
+                exemptDefaultLayer );
     }
 
     // Enforce the Hidden Layer Policy, which is only that a Hidden Layer cannot
     // be made Active, and to default to the Default Layer if the current Layer
     // is Active and we are trying to set it to Hidden.
-    public static void enforceHiddenLayerPolicy( final ObservableList< LayerProperties > layerCollection,
-                                                 final int currentLayerIndex,
-                                                 final boolean currentLayerVisible ) {
+    public static void enforceHiddenLayerPolicy(
+            final List< Layer > layerCollection,
+            final int currentLayerIndex,
+            final boolean currentLayerVisible ) {
         // Always cache the new Hidden status as that is always accepted.
-        final LayerProperties layer = getLayer( layerCollection, currentLayerIndex );
+        final Layer layer = getLayer( layerCollection, currentLayerIndex );
         if ( currentLayerVisible != layer.isLayerVisible() ) {
             layer.setLayerVisible( currentLayerVisible );
         }
@@ -208,15 +212,18 @@ public final class LayerUtilities {
     // Enforce the Hidden Layer Policy, which is that only a Hidden Layer cannot
     // be Active. Default to the Default Layer if the current Layer is Active
     // and we are trying to set it to Hidden.
-    public static void enforceHiddenLayerPolicy( final ObservableList< LayerProperties > layerCollection,
-                                                 final String currentLayerName,
-                                                 final boolean currentLayerVisible ) {
-        final int currentLayerIndex = getLayerIndex( layerCollection, currentLayerName );
-        enforceHiddenLayerPolicy( layerCollection, currentLayerIndex, currentLayerVisible );
+    public static void enforceHiddenLayerPolicy(
+            final List< Layer > layerCollection,
+            final String currentLayerName,
+            final boolean currentLayerVisible ) {
+        final int currentLayerIndex = getLayerIndex(
+                layerCollection, currentLayerName );
+        enforceHiddenLayerPolicy(
+                layerCollection, currentLayerIndex, currentLayerVisible );
     }
 
-    public static LayerProperties getActiveLayer( final ObservableList< LayerProperties > layerCollection ) {
-        for ( final LayerProperties layer : layerCollection ) {
+    public static Layer getActiveLayer( final List< Layer > layerCollection ) {
+        for ( final Layer layer : layerCollection ) {
             if ( layer.isLayerActive() ) {
                 return layer;
             }
@@ -225,27 +232,30 @@ public final class LayerUtilities {
         return getDefaultLayer( layerCollection );
     }
 
-    public static LayerProperties getActiveLayer( final ObservableList< LayerProperties > layerCollection,
-                                                  final String activeLayerName ) {
+    public static Layer getActiveLayer( final List< Layer > layerCollection,
+                                        final String activeLayerName ) {
         return getLayerByName( layerCollection, activeLayerName );
     }
 
-    public static int getActiveLayerIndex( final ObservableList< LayerProperties > layerCollection ) {
-        final LayerProperties activeLayer = getActiveLayer( layerCollection );
+    public static int getActiveLayerIndex(
+            final List< Layer > layerCollection ) {
+        final Layer activeLayer = getActiveLayer( layerCollection );
 
         return getLayerIndex( layerCollection, activeLayer );
     }
 
-    public static String getActiveLayerName( final ObservableList< LayerProperties > layerCollection ) {
-        final LayerProperties activeLayer = getActiveLayer( layerCollection );
+    public static String getActiveLayerName(
+            final List< Layer > layerCollection ) {
+        final Layer activeLayer = getActiveLayer( layerCollection );
 
         return activeLayer.getLayerName();
     }
 
     // Get the observable drop-list of assignable Layer Names.
-    public static ObservableList< String > getAssignableLayerNames( final ObservableList< LayerProperties > layerCollection,
-                                                                    final boolean supportMultiEdit ) {
-        final ObservableList< String > layerNames = FXCollections.observableArrayList();
+    public static List< String > getAssignableLayerNames(
+            final List< Layer > layerCollection,
+            final boolean supportMultiEdit ) {
+        final List< String > layerNames = new ArrayList<>();
 
         // Preface the necessary "various" label for heterogeneous selections.
         // NOTE: This is only relevant if we support multi-edit.
@@ -254,7 +264,7 @@ public final class LayerUtilities {
         }
 
         // Get the current name for each visible Layer. Enforce uniqueness.
-        for ( final LayerProperties layer : layerCollection ) {
+        for ( final Layer layer : layerCollection ) {
             if ( layer.isLayerVisible() ) {
                 final String layerName = layer.getLayerName();
                 if ( ( layerName != null ) && !layerName.trim().isEmpty() ) {
@@ -268,12 +278,12 @@ public final class LayerUtilities {
         return layerNames;
     }
 
-    public static LayerProperties getDefaultLayer( final ObservableList< LayerProperties > layerCollection ) {
+    public static Layer getDefaultLayer( final List< Layer > layerCollection ) {
         return layerCollection.get( DEFAULT_LAYER_INDEX );
     }
 
-    public static LayerProperties getLayer( final ObservableList< LayerProperties > layerCollection,
-                                            final int layerIndex ) {
+    public static Layer getLayer( final List< Layer > layerCollection,
+                                  final int layerIndex ) {
         return !isLayerIndexValid( layerCollection, layerIndex )
             ? null
             : layerCollection.get( layerIndex );
@@ -281,25 +291,25 @@ public final class LayerUtilities {
 
     // Get the Layer from the referenced Layer collection corresponding to the
     // name of the provided Layer, or the Default Layer if invalid Layer.
-    public static LayerProperties getLayerByName( final ObservableList< LayerProperties > layerCollection,
-                                                  final LayerProperties layer ) {
+    public static Layer getLayerByName( final List< Layer > layerCollection,
+                                        final Layer layer ) {
         final String layerName = layer.getLayerName();
         return getLayerByName( layerCollection, layerName );
     }
 
     // Get the Layer from the referenced Layer collection corresponding to the
     // provided Layer Name, or the Default Layer if invalid Layer Name.
-    public static LayerProperties getLayerByName( final ObservableList< LayerProperties > layerCollection,
-                                                  final String layerName ) {
+    public static Layer getLayerByName( final List< Layer > layerCollection,
+                                        final String layerName ) {
         if ( ( layerCollection != null ) && ( layerName != null ) && !layerName.trim().isEmpty() ) {
-            for ( final LayerProperties layer : layerCollection ) {
+            for ( final Layer layer : layerCollection ) {
                 if ( layer.getLayerName().equals( layerName ) ) {
                     return layer;
                 }
             }
         }
 
-        final LayerProperties defaultLayer = ( layerCollection != null )
+        final Layer defaultLayer = ( layerCollection != null )
             ? getDefaultLayer( layerCollection )
             : makeDefaultLayer();
 
@@ -307,16 +317,15 @@ public final class LayerUtilities {
     }
 
     // Get a cloned Layer; accounting for uniqueness and business logic.
-    public static LayerProperties getLayerClone( final int referenceLayerIndex,
-                                                 final ObservableList< LayerProperties > layerCollection ) {
-        final LayerProperties referenceLayer = getLayer( layerCollection, referenceLayerIndex );
-        final LayerProperties newLayer = getLayerClone( referenceLayer, layerCollection );
-        return newLayer;
+    public static Layer getLayerClone( final int referenceLayerIndex,
+                                       final List< Layer > layerCollection ) {
+        final Layer referenceLayer = getLayer( layerCollection, referenceLayerIndex );
+        return getLayerClone( referenceLayer, layerCollection );
     }
 
     // Get a cloned Layer; accounting for uniqueness and business logic.
-    public static LayerProperties getLayerClone( final LayerProperties referenceLayer,
-                                                 final ObservableList< LayerProperties > layerCollection ) {
+    public static Layer getLayerClone( final Layer referenceLayer,
+                                       final List< Layer > layerCollection ) {
         if ( referenceLayer == null ) {
             return null;
         }
@@ -327,44 +336,45 @@ public final class LayerUtilities {
         final boolean display = referenceLayer.isLayerVisible();
         final boolean lock = referenceLayer.isLayerLocked();
 
-        final LayerProperties newLayer = new LayerProperties( newLayerName,
-                                                              color,
-                                                              LAYER_STATUS_DEFAULT,
-                                                              display,
-                                                              lock );
-
-        return newLayer;
+        return new Layer(
+                newLayerName,
+                color,
+                LAYER_STATUS_DEFAULT,
+                display,
+                lock );
     }
 
     // Get a defaulted Layer; usually used for setting known values.
-    public static LayerProperties getLayerDefault() {
-        return new LayerProperties( LAYER_NAME_DEFAULT,
+    public static Layer getLayerDefault() {
+        return new Layer( LAYER_NAME_DEFAULT,
                                     LAYER_COLOR_DEFAULT,
                                     LAYER_STATUS_DEFAULT,
                                     LAYER_DISPLAY_DEFAULT,
                                     LAYER_LOCK_DEFAULT );
     }
 
-    public static int getLayerIndex( final ObservableList< LayerProperties > layerCollection,
-                                     final LayerProperties layer ) {
+    public static int getLayerIndex( final List< Layer > layerCollection,
+                                     final Layer layer ) {
         return layerCollection.indexOf( layer );
     }
 
-    public static int getLayerIndex( final ObservableList< LayerProperties > layerCollection,
+    public static int getLayerIndex( final List< Layer > layerCollection,
                                      final String layerName ) {
-        final LayerProperties layer = getLayerByName( layerCollection, layerName );
+        final Layer layer = getLayerByName( layerCollection, layerName );
 
         return getLayerIndex( layerCollection, layer );
     }
 
     // Get the next available Layer Name for a new Layer in the collection.
-    public static String getNewLayerNameDefault( final ObservableList< LayerProperties > layerCollection ) {
+    public static String getNewLayerNameDefault(
+            final List< Layer > layerCollection ) {
         return getNewLayerNameDefault( LAYER_NAME_DEFAULT, layerCollection );
     }
 
     // Get the next available Layer Name for a new Layer in the collection.
-    public static String getNewLayerNameDefault( final String layerNameDefault,
-                                                 final ObservableList< LayerProperties > layerCollection ) {
+    public static String getNewLayerNameDefault(
+            final String layerNameDefault,
+            final List< Layer > layerCollection ) {
         // Bump beyond the current count -- as the new Layer hasn't been added
         // to the collection yet -- but account for numbering starting at 0.
         return LabeledObjectManager.getNewLabelDefault( layerCollection, 
@@ -373,8 +383,8 @@ public final class LayerUtilities {
                                                         true );
     }
 
-    public static boolean hasActiveLayer( final ObservableList< LayerProperties > layerCollection ) {
-        for ( final LayerProperties layer : layerCollection ) {
+    public static boolean hasActiveLayer( final List< Layer > layerCollection ) {
+        for ( final Layer layer : layerCollection ) {
             if ( layer.isLayerActive() ) {
                 return true;
             }
@@ -383,11 +393,11 @@ public final class LayerUtilities {
         return false;
     }
 
-    public static boolean hasLayer( final ObservableList< LayerProperties > layerCollection,
-                                    final LayerProperties referenceLayer ) {
+    public static boolean hasLayer( final List< Layer > layerCollection,
+                                    final Layer referenceLayer ) {
         final String referenceLayerName = referenceLayer.getLayerName();
 
-        for ( final LayerProperties layer : layerCollection ) {
+        for ( final Layer layer : layerCollection ) {
             if ( layer.getLayerName().equals( referenceLayerName ) ) {
                 return true;
             }
@@ -396,34 +406,34 @@ public final class LayerUtilities {
         return false;
     }
 
-    public static LayerProperties importLayer( final ObservableList< LayerProperties > layerCollection,
-                                               final LayerProperties layerCandidate ) {
+    public static Layer importLayer( final List< Layer > layerCollection,
+                                     final Layer layerCandidate ) {
         // Prevent exceptions by filtering for null objects and defaulting.
         if ( layerCandidate == null ) {
-            return LayerUtilities.getDefaultLayer( layerCollection );
+            return getDefaultLayer( layerCollection );
         }
 
         // Add the Layer candidate to the collection if not already present.
-        LayerUtilities.addLayerIfUnique( layerCollection, layerCandidate );
+        addLayerIfUnique( layerCollection, layerCandidate );
 
         // Return the Layer candidate as affirmation it is safe to assign.
         return layerCandidate;
     }
 
-    public static boolean isLayerHidden( final ObservableList< LayerProperties > layerCollection,
+    public static boolean isLayerHidden( final List< Layer > layerCollection,
                                          final int layerIndex ) {
-        final LayerProperties layer = layerCollection.get( layerIndex );
+        final Layer layer = layerCollection.get( layerIndex );
         return !layer.isLayerVisible();
     }
 
-    public static boolean isLayerIndexValid( final ObservableList< LayerProperties > layerCollection,
+    public static boolean isLayerIndexValid( final List< Layer > layerCollection,
                                              final int layerIndex ) {
         return ( layerCollection != null ) && ( layerIndex >= 0 )
                 && ( layerIndex < layerCollection.size() );
     }
 
     public static boolean isLayerNameUnique( final String layerNameCandidate,
-                                             final ObservableList< LayerProperties > layerCollection,
+                                             final List< Layer > layerCollection,
                                              final int excludeLayerIndex ) {
         // Determine name-uniqueness of the supplied Layer Name candidate.
         for ( int layerIndex = 0, numberOfLayers = layerCollection
@@ -437,32 +447,31 @@ public final class LayerUtilities {
         return true;
     }
 
-    public static LayerProperties makeDefaultLayer() {
-        final LayerProperties defaultLayer = new LayerProperties( DEFAULT_LAYER_NAME,
-                                                                  LAYER_COLOR_DEFAULT,
-                                                                  true,
-                                                                  true,
-                                                                  false );
-        return defaultLayer;
+    public static Layer makeDefaultLayer() {
+        return new Layer(
+                DEFAULT_LAYER_NAME,
+                LAYER_COLOR_DEFAULT,
+                true,
+                true,
+               false );
     }
 
-    public static ObservableList< LayerProperties > makeLayerCollection() {
+    public static List< Layer > makeLayerCollection() {
         // Use the extractor pattern to ensure that edits to the specified
         // properties trigger list change events, as otherwise only adding to
         // and from the list does so, as it doesn't look at the granularity of
         // the observable properties below.
-        final ObservableList< LayerProperties > layerCollection = FXCollections
+        /*
+        final List< Layer > layerCollection = FXCollections
                 .observableArrayList( layerProperties -> new Observable[] {
-                                                                            layerProperties
-                                                                                    .layerNameProperty(),
-                                                                            layerProperties
-                                                                                    .layerColorProperty(),
-                                                                            layerProperties
-                                                                                    .layerActiveProperty(),
-                                                                            layerProperties
-                                                                                    .layerVisibleProperty(),
-                                                                            layerProperties
-                                                                                    .layerLockedProperty() } );
+                        layerProperties.layerNameProperty(),
+                        layerProperties.layerColorProperty(),
+                        layerProperties.layerActiveProperty(),
+                        layerProperties.layerVisibleProperty(),
+                        layerProperties.layerLockedProperty() } );
+        */
+
+        final List< Layer > layerCollection = new ArrayList<>();
 
         // Set the collection to initially only contain the Default Layer.
         resetLayerCollection( layerCollection );
@@ -470,66 +479,70 @@ public final class LayerUtilities {
         return layerCollection;
     }
 
-    public static LayerProperties makeTempLayer() {
-        final LayerProperties defaultLayer = new LayerProperties( TEMP_LAYER_NAME,
-                                                                  LAYER_COLOR_DEFAULT,
-                                                                  false,
-                                                                  true,
-                                                                  false );
-        return defaultLayer;
+    public static Layer makeTempLayer() {
+        // make a default Layer as the temp layer.
+        return new Layer(
+                TEMP_LAYER_NAME,
+                LAYER_COLOR_DEFAULT,
+                false,
+                true,
+                false );
     }
 
-    public static void reassignObjectOnDeletedLayer( final LayerAssignable layerObject,
-                                                     final ObservableList< LayerProperties > layerCollection,
-                                                     final LayerProperties activeLayer ) {
-        final LayerProperties objectLayer = layerObject.getLayer();
+    public static void reassignObjectOnDeletedLayer(
+            final LayerAssignable layerObject,
+            final List< Layer > layerCollection,
+            final Layer activeLayer ) {
+        final Layer objectLayer = layerObject.getLayer();
         if ( !hasLayer( layerCollection, objectLayer ) ) {
             layerObject.setLayer( activeLayer );
         }
     }
 
-    public static void resetLayerCollection( final ObservableList< LayerProperties > layerCollection ) {
-        final LayerProperties defaultLayer = makeDefaultLayer();
-        layerCollection.setAll( defaultLayer );
+    public static void resetLayerCollection(
+            final List< Layer > layerCollection ) {
+        final Layer defaultLayer = makeDefaultLayer();
+        layerCollection.clear();
+        layerCollection.add( defaultLayer );
     }
 
-    public static void setActiveLayer( final LayerProperties activeLayer ) {
+    public static void setActiveLayer( final Layer activeLayer ) {
         if ( !activeLayer.isLayerActive() ) {
             activeLayer.setLayerActive( true );
         }
     }
 
-    public static LayerProperties setActiveLayer( final ObservableList< LayerProperties > layerCollection,
-                                                  final int activeLayerIndex ) {
-        final LayerProperties activeLayer = layerCollection.get( activeLayerIndex );
+    public static Layer setActiveLayer( final List< Layer > layerCollection,
+                                        final int activeLayerIndex ) {
+        final Layer activeLayer = layerCollection.get( activeLayerIndex );
         setActiveLayer( activeLayer );
 
         return activeLayer;
     }
 
-    public static LayerProperties setActiveLayer( final ObservableList< LayerProperties > layerCollection,
-                                                  final String activeLayerName ) {
-        final LayerProperties activeLayer = getActiveLayer( layerCollection, activeLayerName );
+    public static Layer setActiveLayer( final List< Layer > layerCollection,
+                                        final String activeLayerName ) {
+        final Layer activeLayer = getActiveLayer( layerCollection, activeLayerName );
         setActiveLayer( activeLayer );
 
         return activeLayer;
     }
 
-    public static LayerProperties setDefaultLayerActive( final ObservableList< LayerProperties > layerCollection ) {
+    public static Layer setDefaultLayerActive(
+            final List< Layer > layerCollection ) {
         return setActiveLayer( layerCollection, DEFAULT_LAYER_INDEX );
     }
 
-    public static void uniquefyLayerName( final ObservableList< LayerProperties > layerCollection,
+    public static void uniquefyLayerName( final List< Layer > layerCollection,
                                           final String layerNameCandidate,
                                           final String labelToExclude,
                                           final NumberFormat uniquefierNumberFormat ) {
         // Get the current Layer.
-        final LayerProperties layerProperties = getLayerByName( layerCollection,
-                                                                labelToExclude );
+        final Layer layer = getLayerByName( layerCollection, labelToExclude );
 
         // Get a unique Layer Name from the candidate name.
         // NOTE: Make sure we aren't trying to change the Default Layer Name.
-        final String oldLayerName = layerProperties.getLayerName();
+        final String oldLayerName = layer.getLayerName();
         final String newLayerName = ( DEFAULT_LAYER_NAME == labelToExclude )
             ? DEFAULT_LAYER_NAME
             : LabeledObjectManager.getUniqueLabel( layerCollection,
@@ -542,17 +555,16 @@ public final class LayerUtilities {
         // as otherwise we can miss some view-syncing due to no "changed" event.
         final boolean layerNameChanged = !newLayerName.equals( oldLayerName );
         if ( !layerNameChanged ) {
-            layerProperties.setLayerName( layerNameCandidate );
+            layer.setLayerName( layerNameCandidate );
         }
 
         // Unconditionally cache the corrected Layer Name, as the only edge case
         // is when it results in cancellation of edits, but we still have to set
         // to the interim candidate value first or we get no view refresh due to
         // no "changed" event when the start value equals the end value.
-        layerProperties.setLayerName( newLayerName );
+        layer.setLayerName( newLayerName );
     }
 
     // NOTE: The constructor is disabled, as this is a static class.
-    private LayerUtilities() {}
-
+    private LayerManager() {}
 }

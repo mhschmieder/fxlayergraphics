@@ -28,121 +28,93 @@
  *
  * Project: https://github.com/mhschmieder/fxlayergraphics
  */
-package com.mhschmieder.fxlayergraphics.model;
+package com.mhschmieder.fxlayergraphics;
 
-import com.mhschmieder.fxlayergraphics.LayerPropertiesManager;
 import com.mhschmieder.jcommons.lang.LabeledObject;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.scene.paint.Color;
 
 /**
- * Observable Layer implementation for common settings that cut across most
+ * Basic Layer implementation for common settings that cut across most
  * applications that expose some form of layer management. Use this version for
- * binding to related GUI controls purposes; there is a non-observable Layer
- * class in the graphics library for Layer Management, for most other purposes.
+ * most purposes; there is an observable LayerProperties class in the controls
+ * library for Layer Management, to be used for binding to related GUI controls.
  */
-public final class LayerProperties implements Comparable< LayerProperties >,
-    LabeledObject {
+public class Layer implements Comparable< Layer >, LabeledObject {
 
-    private final StringProperty layerName;
-    private final ObjectProperty< Color > layerColor;
-    private final BooleanProperty layerActive;
-    private final BooleanProperty layerVisible;
-    private final BooleanProperty layerLocked;
+    private String layerName;
+    private Color layerColor;
+    private boolean layerActive;
+    private boolean layerVisible;
+    private boolean layerLocked;
 
-    public LayerProperties( final String pLayerName,
-                            final Color pLayerColor,
-                            final boolean pLayerActive,
-                            final boolean pLayerVisible,
-                            final boolean pLayerLocked ) {
-        layerName = new SimpleStringProperty( pLayerName );
-        layerColor = new SimpleObjectProperty<>( pLayerColor );
-        layerActive = new SimpleBooleanProperty( pLayerActive );
-        layerVisible = new SimpleBooleanProperty( pLayerVisible );
-        layerLocked = new SimpleBooleanProperty( pLayerLocked );
+    public Layer( final String pLayerName,
+                  final Color pLayerColor,
+                  final boolean pLayerActive,
+                  final boolean pLayerVisible,
+                  final boolean pLayerLocked ) {
+        layerName = pLayerName;
+        layerColor = pLayerColor;
+        layerActive = pLayerActive;
+        layerVisible = pLayerVisible;
+        layerLocked = pLayerLocked;
     }
 
     // NOTE: This is implemented strictly for sorting by Layer Name.
     @Override
-    public int compareTo( final LayerProperties otherLayerProperties ) {
+    public int compareTo( final Layer otherLayerProperties ) {
         // If this Layer is the Default Layer, it is "less than" the other.
         final String thisLayerName = getLayerName();
-        if ( LayerPropertiesManager.DEFAULT_LAYER_NAME.equals( thisLayerName ) ) {
+        if ( LayerManager.DEFAULT_LAYER_NAME.equals( thisLayerName ) ) {
             return -1;
         }
 
         // If the other Layer is the Default Layer, it is "more than" this.
         final String otherLayerName = otherLayerProperties.getLayerName();
-        if ( LayerPropertiesManager.DEFAULT_LAYER_NAME.equals( otherLayerName ) ) {
+        if ( LayerManager.DEFAULT_LAYER_NAME.equals( otherLayerName ) ) {
             return 1;
         }
 
         return thisLayerName.compareTo( otherLayerName );
     }
 
-    public StringProperty layerNameProperty() {
+    public String getLayerName() {
         return layerName;
     }
 
-    public String getLayerName() {
-        return layerName.get();
-    }
-
     public void setLayerName( final String pLayerName ) {
-        layerName.set( pLayerName );
-    }
-
-    public ObjectProperty< Color > layerColorProperty() {
-        return layerColor;
+        layerName = pLayerName;
     }
 
     public Color getLayerColor() {
-        return layerColor.get();
+        return layerColor;
     }
 
     public void setLayerColor( final Color pLayerColor ) {
-        layerColor.set( pLayerColor );
-    }
-
-    public BooleanProperty layerActiveProperty() {
-        return layerActive;
+        layerColor = pLayerColor;
     }
 
     public boolean isLayerActive() {
-        return layerActive.get();
+        return layerActive;
     }
 
     public void setLayerActive( final boolean pLayerActive ) {
-        layerActive.set( pLayerActive );
-    }
-
-    public BooleanProperty layerVisibleProperty() {
-        return layerVisible;
+        layerActive = pLayerActive;
     }
 
     public boolean isLayerVisible() {
-        return layerVisible.get();
+        return layerVisible;
     }
 
     public void setLayerVisible( final boolean pLayerVisible ) {
-        layerVisible.set( pLayerVisible );
-    }
-
-    public BooleanProperty layerLockedProperty() {
-        return layerLocked;
+        layerVisible = pLayerVisible;
     }
 
     public boolean isLayerLocked() {
-        return layerLocked.get();
+        return layerLocked;
     }
 
     public void setLayerLocked( final boolean pLayerLocked ) {
-        layerLocked.set( pLayerLocked );
+        layerLocked = pLayerLocked;
     }
 
     @Override
